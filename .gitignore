@@ -1,10 +1,19 @@
-# Python-generated files
+# Python
 __pycache__/
-*.py[oc]
-build/
-dist/
-wheels/
-*.egg-info
+*.pyc
+*.pyo
+*.DS_Store
 
-# Virtual environments
-.venv
+# Data / Models / Artifacts
+data/
+checkpoints/
+*.pth
+*.pt
+*.tar.gz
+*.zip
+
+# Env / lock
+.venv/
+venv/
+.env/
+uv.lock
