@@ -1,19 +1,59 @@
-# Python
+# ========================
+# Python cache / temp
+# ========================
 __pycache__/
 *.pyc
 *.pyo
-*.DS_Store
+*.pyd
+*.log
+.DS_Store
 
-# Data / Models / Artifacts
+# ========================
+# Environment / Lock
+# ========================
+.venv/
+venv/
+env/
+.env
+.uv/
+uv.lock
+.python-version
+
+# ========================
+# Data / Models / Outputs
+# ========================
 data/
+datasets/
+samples/
+outputs/
 checkpoints/
 *.pth
 *.pt
+*.h5
+*.ckpt
 *.tar.gz
 *.zip
+*.npz
 
-# Env / lock
-.venv/
-venv/
-.env/
-uv.lock
+# ========================
+# Jupyter / Notebook
+# ========================
+*.ipynb_checkpoints
+*.ipynb_convert
+
+# ========================
+# IDE / Editor / OS
+# ========================
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+
+# ========================
+# Docker / Build
+# ========================
+__docker_build__/
+*.bak
+*.out
+Dockerfile~
+.dockerignore~
