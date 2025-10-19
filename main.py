@@ -1,31 +1,35 @@
-from helper_lib.data_loader import get_data_loader
-from helper_lib.trainer import train_model
-from helper_lib.evaluator import evaluate_model
-from helper_lib.model import get_model
-from helper_lib.checkpoints import load_checkpoint
-import torch.nn as nn
-import torch.optim as optim
+# main.py
+import os
+import torch
+from helper_lib_new.data_loader import get_data_loader
+from helper_lib_new.model import GeneratorMNIST, DiscriminatorMNIST
+from helper_lib_new.trainer import train_gan_mnist
 
 def main():
-    # Load data
-    train_loader = get_data_loader('data/train', batch_size=64)
-    val_loader = get_data_loader('data/val', batch_size=64, train=False)
-    test_loader = get_data_loader('data/test', batch_size=64, train=False)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    os.makedirs("checkpoints", exist_ok=True)
 
-    # Initialize model and training components
-    model = get_model("CNN")
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
-
-    # Train from scratch with checkpoint saving
-    trained_model = train_model(
-        model, train_loader, val_loader, criterion, optimizer, 
-        epochs=10, checkpoint_dir='checkpoints'
+    dataloader = get_data_loader(
+        data_dir="./data",
+        batch_size=128,
+        train=True,
+        dataset="MNIST",
+        transform=None
     )
 
-    # Evaluate final model
-    avg_loss, accuracy = evaluate_model(trained_model, test_loader, criterion)
-    print(f"Test Accuracy: {accuracy:.2f}%")
+    generator = GeneratorMNIST()
+    discriminator = DiscriminatorMNIST()
+
+    train_gan_mnist(
+        generator=generator,
+        discriminator=discriminator,
+        dataloader=dataloader,
+        device=device,
+        epochs=20,
+        ckpt_path="./checkpoints/gan_mnist.pth"
+    )
+
+    print("GAN training is done")
 
 if __name__ == "__main__":
     main()

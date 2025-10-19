@@ -1,39 +1,44 @@
-from fastapi import FastAPI, UploadFile, File
-from PIL import Image
-import io
+# api.py
+from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
 import torch
-from torchvision import transforms
-from helper_lib.model import get_model
-from helper_lib.checkpoints import load_checkpoint
+from torchvision.utils import save_image
+import io
+import os
+from helper_lib_new.model import GeneratorMNIST
 
-app = FastAPI()
+app = FastAPI(title="MNIST GAN API")
 
-_preproc = transforms.Compose([
-    transforms.Resize((64, 64)),
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2470, 0.2435, 0.2616)),
-])
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+generator = GeneratorMNIST().to(device)
 
-model = get_model("CNN")
-_ckpt_path = "checkpoints/best.pth"
+ckpt_path = "./checkpoints/gan_mnist.pth"
 try:
-    load_checkpoint(model, optimizer=None, checkpoint_path=_ckpt_path, device='cpu')
-except Exception:
-    pass
-model.eval()
+    if os.path.exists(ckpt_path):
+        ckpt = torch.load(ckpt_path, map_location=device)
+        generator.load_state_dict(ckpt["G"])
+        print("✅ Generator load success")
+    else:
+        print(f"⚠️ Checkpoint not found at {ckpt_path}")
+except Exception as e:
+    print("⚠️ Cannot load model:", e)
 
-@app.post("/classify")
-def classify_image(file: UploadFile = File(...)):
-    img_bytes = file.file.read()
-    img = Image.open(io.BytesIO(img_bytes)).convert('RGB')
-    x = _preproc(img).unsqueeze(0)
+generator.eval()
+
+@app.get("/")
+def root():
+    return {"message": "MNIST GAN API is running", "endpoints": ["/docs", "/generate?n=16"]}
+
+@app.get("/generate", summary="Generate MNIST-like digits image grid (PNG)")
+def generate_digit(n: int = 16):
+    n = max(1, min(int(n), 64)) 
+    z = torch.randn(n, 100, device=device)
     with torch.no_grad():
-        logits = model(x)
-        pred = int(torch.argmax(logits, dim=1).item())
+        fake = generator(z)           # [-1,1]
+        imgs = (fake + 1) / 2         # [0,1]
 
-    labels = [
-        "airplane", "automobile", "bird", "cat", "deer",
-        "dog", "frog", "horse", "ship", "truck"
-    ]
-    return {"class": pred, "label": labels[pred]}
+    buffer = io.BytesIO()
 
+    save_image(imgs, buffer, format="PNG", nrow=int(min(8, n)))
+    buffer.seek(0)
+    return StreamingResponse(buffer, media_type="image/png")
