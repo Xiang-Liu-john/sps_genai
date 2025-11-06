@@ -1,23 +1,31 @@
 import argparse
 import torch
-import torch.nn as nn
-import torch.optim as optim
-from helper_lib.data_loader import get_data_loader
-from helper_lib.model import get_model
-from helper_lib.trainer import train_model
+from helper_lib_a4.trainer import EnergyTrainer, DiffusionTrainer
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--data', type=str, default='./data')
-parser.add_argument('--epochs', type=int, default=5)
-parser.add_argument('--bs', type=int, default=64)
-args = parser.parse_args()
+def main():
+    parser = argparse.ArgumentParser(description="Train Energy or Diffusion Model on CIFAR-10")
+    parser.add_argument('--model', type=str, choices=['energy', 'diffusion'], required=True,
+                        help="Select which model to train: 'energy' or 'diffusion'")
+    parser.add_argument('--epochs', type=int, default=5)
+    parser.add_argument('--bs', type=int, default=128)
+    parser.add_argument('--ckpt_dir', type=str, default='checkpoints')
+    args = parser.parse_args()
 
-train_loader = get_data_loader(args.data, batch_size=args.bs, train=True)
-val_loader = get_data_loader(args.data, batch_size=args.bs, train=False)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-model = get_model('CNN')
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=1e-3)
+    if args.model == 'energy':
+        print("Training Energy Model on CIFAR-10 ...")
+        trainer = EnergyTrainer(device=device)
+        trainer.train(epochs=args.epochs, batch_size=args.bs,
+                      ckpt=f"{args.ckpt_dir}/energy.pt")
+        print("Energy Model training complete! Saved to checkpoints/energy.pt")
 
-_ = train_model(model, train_loader, val_loader, criterion, optimizer, epochs=args.epochs, checkpoint_dir='checkpoints')
-print('Training complete. Best model saved at checkpoints/best.pth')
+    elif args.model == 'diffusion':
+        print("Training Diffusion Model on CIFAR-10 ...")
+        trainer = DiffusionTrainer(device=device)
+        trainer.train(epochs=args.epochs, batch_size=args.bs,
+                      ckpt=f"{args.ckpt_dir}/diffusion.pt")
+        print("Diffusion Model training complete! Saved to checkpoints/diffusion.pt")
+
+if __name__ == "__main__":
+    main()

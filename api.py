@@ -1,44 +1,71 @@
-# api.py
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import StreamingResponse
 import torch
+from torchvision import transforms
 from torchvision.utils import save_image
+from PIL import Image
 import io
 import os
-from helper_lib_new.model import GeneratorMNIST
 
-app = FastAPI(title="MNIST GAN API")
+from helper_lib_a4.model import EnergyCNN, UNetSmall, DDPM
+
+app = FastAPI(title="CIFAR10 Energy & Diffusion API")
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-generator = GeneratorMNIST().to(device)
 
-ckpt_path = "./checkpoints/gan_mnist.pth"
-try:
-    if os.path.exists(ckpt_path):
-        ckpt = torch.load(ckpt_path, map_location=device)
-        generator.load_state_dict(ckpt["G"])
-        print("✅ Generator load success")
-    else:
-        print(f"⚠️ Checkpoint not found at {ckpt_path}")
-except Exception as e:
-    print("⚠️ Cannot load model:", e)
+# ---------- Load Energy Model ----------
+energy_model = EnergyCNN().to(device)
+energy_ckpt = "checkpoints/energy.pt"
+if os.path.exists(energy_ckpt):
+    energy_model.load_state_dict(torch.load(energy_ckpt, map_location=device))
+    print("Energy model loaded successfully.")
+else:
+    print(f"⚠️ Energy checkpoint not found at {energy_ckpt}.")
+energy_model.eval()
 
-generator.eval()
+# ---------- Load Diffusion Model ----------
+unet = UNetSmall().to(device)
+ddpm = DDPM(unet, device=device)
+diff_ckpt = "checkpoints/diffusion.pt"
+if os.path.exists(diff_ckpt):
+    unet.load_state_dict(torch.load(diff_ckpt, map_location=device))
+    print("Diffusion model loaded successfully.")
+else:
+    print(f"Diffusion checkpoint not found at {diff_ckpt}.")
+unet.eval()
+
+# ---------- Transforms ----------
+transform = transforms.Compose([
+    transforms.Resize((32, 32)),
+    transforms.ToTensor(),
+    transforms.Normalize((0.4914, 0.4822, 0.4465),
+                         (0.2470, 0.2435, 0.2616)),
+])
 
 @app.get("/")
 def root():
-    return {"message": "MNIST GAN API is running", "endpoints": ["/docs", "/generate?n=16"]}
+    return {
+        "message": "CIFAR10 Energy & Diffusion Models are running!",
+        "endpoints": ["/docs", "/energy/score", "/diffusion/sample"]
+    }
 
-@app.get("/generate", summary="Generate MNIST-like digits image grid (PNG)")
-def generate_digit(n: int = 16):
-    n = max(1, min(int(n), 64)) 
-    z = torch.randn(n, 100, device=device)
+# ---------- Energy Model Endpoint ----------
+@app.post("/energy/score", summary="Compute energy value for uploaded CIFAR-like image")
+async def energy_score(file: UploadFile = File(...)):
+    img = Image.open(io.BytesIO(await file.read())).convert("RGB")
+    x = transform(img).unsqueeze(0).to(device)
     with torch.no_grad():
-        fake = generator(z)           # [-1,1]
-        imgs = (fake + 1) / 2         # [0,1]
+        e = energy_model(x).item()
+    return {"energy_score": float(e)}
 
+# ---------- Diffusion Sampling Endpoint ----------
+@app.get("/diffusion/sample", summary="Generate CIFAR10-like images (PNG)")
+def diffusion_sample(n: int = 16):
+    n = max(1, min(int(n), 64))
+    with torch.no_grad():
+        samples = ddpm.sample(n=n)
+        imgs = (samples + 1) / 2  # [0,1]
     buffer = io.BytesIO()
-
-    save_image(imgs, buffer, format="PNG", nrow=int(min(8, n)))
+    save_image(imgs, buffer, format="PNG", nrow=min(8, n))
     buffer.seek(0)
     return StreamingResponse(buffer, media_type="image/png")
