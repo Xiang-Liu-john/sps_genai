@@ -1,0 +1,17 @@
+Metadata-Version: 2.4
+Name: sps-genai
+Version: 0.1.0
+Summary: Generative AI project with GPT2 fine-tuning, Energy Model, and Diffusion
+Requires-Python: >=3.13
+Description-Content-Type: text/markdown
+Requires-Dist: fastapi[standard]>=0.116.1
+Requires-Dist: python-multipart>=0.0.9
+Requires-Dist: torch>=2.3.0
+Requires-Dist: torchvision>=0.18.0
+Requires-Dist: tqdm>=4.66.0
+Requires-Dist: matplotlib>=3.8.0
+Requires-Dist: transformers>=4.40.0
+Requires-Dist: datasets>=2.19.0
+Requires-Dist: accelerate>=0.31.0
+Requires-Dist: sentencepiece>=0.1.99
+Requires-Dist: protobuf>=4.25.0

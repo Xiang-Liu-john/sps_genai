@@ -1,14 +1,32 @@
 [project]
 name = "sps-genai"
 version = "0.1.0"
-description = "Add your description here"
+description = "Generative AI project with GPT2 fine-tuning, Energy Model, and Diffusion"
 readme = "README.md"
 requires-python = ">=3.13"
+
 dependencies = [
+    # FastAPI + server
     "fastapi[standard]>=0.116.1",
+    "python-multipart>=0.0.9",
+
+    # Core ML
     "torch>=2.3.0",
     "torchvision>=0.18.0",
+
+    # Utilities
     "tqdm>=4.66.0",
     "matplotlib>=3.8.0",
-    "python-multipart>=0.0.9"
+
+    # HuggingFace LLM fine-tuning
+    "transformers>=4.40.0",
+    "datasets>=2.19.0",
+    "accelerate>=0.31.0",
+
+    # Optional but recommended for GPT2 training
+    "sentencepiece>=0.1.99",
+    "protobuf>=4.25.0"
 ]
+
+[tool.setuptools.packages.find]
+where = ["."]

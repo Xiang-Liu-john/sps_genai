@@ -1,0 +1,11 @@
+fastapi[standard]>=0.116.1
+python-multipart>=0.0.9
+torch>=2.3.0
+torchvision>=0.18.0
+tqdm>=4.66.0
+matplotlib>=3.8.0
+transformers>=4.40.0
+datasets>=2.19.0
+accelerate>=0.31.0
+sentencepiece>=0.1.99
+protobuf>=4.25.0
